@@ -6760,6 +6760,9 @@ tnc_tn_sb(sb, len) CHAR * sb; int len;
             case TNC_BPS_460800:
               tnc_bps = 460800;
               break;
+            case TNC_BPS_1500000:
+              tnc_bps = 1500000;
+              break;
             default:
               tnc_bps = -1;
             }
@@ -7177,6 +7180,7 @@ tnc_set_baud(baud) long baud;
      *          14              115200
      *          15              230400    ?
      *          16              460800    ?
+     *          16              1500000    ?
      */
 
     int i = 0, rc;
@@ -7240,6 +7244,8 @@ tnc_set_baud(baud) long baud;
             b = TNC_BPS_115200;
         else if (baud <= 230400)
             b = TNC_BPS_230400;
+        else if (baud <= 1500000)
+            b = TNC_BPS_1500000;
         else
             b = TNC_BPS_460800;
         sb_out[i++] = b;

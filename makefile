@@ -6055,7 +6055,7 @@ linuxa:
 	"CFLAGS = -O -DLINUX -pipe -funsigned-char -DFNFLOAT -DCK_POSIX_SIG \
 	-DCK_NEWTERM -DTCPSOCKET -DLINUXFSSTND -DNOCOTFMC -DPOSIX \
 	-DUSE_STRERROR $(KFLAGS)" "LNKFLAGS = $(LNKFLAGS)" \
-	"LIBS = $(LIBS) -lm"
+	"LIBS = $(LIBS) -lm -lcurses"
 
 # As above but with profiling
 linuxp:
