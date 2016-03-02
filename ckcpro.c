@@ -7,7 +7,7 @@
 char *wartv = "Wart Version 2.14, 10 Nov 1999";
 
 char *protv =                                                     /* -*-C-*- */
-"C-Kermit Protocol Module 8.0.160, 12 Aug 2007";
+"C-Kermit Protocol Module 9.0.160, 16 Oct 2009";
 
 int kactive = 0;			/* Kermit protocol is active */
 
@@ -18,7 +18,7 @@ int kactive = 0;			/* Kermit protocol is active */
   Author: Frank da Cruz <fdc@columbia.edu>,
   Columbia University Academic Information Systems, New York City.
 
-  Copyright (C) 1985, 2007,
+  Copyright (C) 1985, 2009,
     Trustees of Columbia University in the City of New York.
     All rights reserved.  See the C-Kermit COPYING.TXT file or the
     copyright text in the ckcmai.c module for disclaimer and permissions.
@@ -169,6 +169,7 @@ _PROTOTYP( int cmdsrc, (void) );
 #endif /* TCPSOCKET */
 
   extern int cxseen, czseen, server, srvdis, local, displa, bctu, bctr, bctl;
+  extern int bctf;
   extern int quiet, tsecs, parity, backgrd, nakstate, atcapu, wslotn, winlo;
   extern int wslots, success, xitsta, rprintf, discard, cdtimo, keep, fdispla;
   extern int timef, stdinf, rscapu, sendmode, epktflg, epktrcvd, epktsent;
@@ -504,17 +505,22 @@ case 11:
     {
     int b1 = 0, b2 = 0;
     if (!data) TINIT;			/* "ABEND" -- Tell other side. */
+
+    if (!bctf) {		     /* Block check 3 forced on all packets */
 #ifndef pdp11
-    if (epktflg) {			/* If because of E-PACKET command */
-	b1 = bctl; b2 = bctu;		/* Save block check type */
-	bctl = bctu = 1;		/* set it to 1 */
-    }
+	if (epktflg) {			/* If because of E-PACKET command */
+	    b1 = bctl; b2 = bctu;	/* Save block check type */
+	    bctl = bctu = 1;		/* set it to 1 */
+	}
 #endif /* pdp11 */
+    }
     errpkt((CHAR *)"User cancelled");	/* Send the packet */
+    if (!bctf) {		     /* Block check 3 forced on all packets */
 #ifndef pdp11
-    if (epktflg) {			/* Restore the block check */
-	epktflg = 0;
-	bctl = b1; bctu = b2;
+	if (epktflg) {			/* Restore the block check */
+	    epktflg = 0;
+	    bctl = b1; bctu = b2;
+	}
     }
 #endif /* pdp11 */
     success = 0;
@@ -945,7 +951,7 @@ case 31:
 		}
 	    }
 	} else {			/* User doesn't want message */
-	    p =zgtdir();
+	    p = zgtdir();
 	    if (!p) p = "";
 	    success = (*p) ? 1 : 0;
 	    ack1((CHAR *)p);
@@ -1129,7 +1135,7 @@ case 37:
 	xxscreen(SCR_TC,0,0L,"");	/* Display */
 	doclean(1);			/* Clean up files, etc */
 #ifdef DEBUG
-	debug(F100,"C-Kermit BYE - Loggin out...","",0);
+	debug(F100,"C-Kermit BYE - Logging out...","",0);
 	zclose(ZDFILE);
 #endif /* DEBUG */
 #ifdef IKSD
@@ -1773,8 +1779,14 @@ case 62:
     {				/* ACK for Send-Init */
     spar(rdatap);			/* set parameters from it */
     cancel = 0;
-    bctu = bctr;			/* switch to agreed-upon block check */
-    bctl = (bctu == 4) ? 2 : bctu;	/* Set block-check length */
+    if (bctf) {
+	bctu = 3;
+	bctl = 3;
+    } else {
+	bctu = bctr;			/* switch to agreed-upon block check */
+	bctl = (bctu == 4) ? 2 : bctu;	/* Set block-check length */
+    }
+
 #ifdef CK_RESEND
     if ((sendmode == SM_RESEND) && (!atcapu || !rscapu)) { /* RESEND */
 	errpkt((CHAR *) "RESEND capabilities not negotiated");
@@ -2926,8 +2938,13 @@ rcv_s_pkt() {
 #endif /* CK_TMPDIR */
 	nakstate = 1;			/* Can send NAKs from here. */
 	rinit(rdatap);			/* Set parameters */
-	bctu = bctr;			/* Switch to agreed-upon block check */
-	bctl = (bctu == 4) ? 2 : bctu;	/* Set block-check length */
+	if (bctf) {
+	    bctu = 3;
+	    bctl = 3;
+	} else {
+	    bctu = bctr;	       /* switch to agreed-upon block check */
+	    bctl = (bctu == 4) ? 2 : bctu; /* Set block-check length */
+	}
 	what = W_RECV;			/* Remember we're receiving */
 	lastxfer = W_RECV;
 	resetc();			/* Reset counters */
